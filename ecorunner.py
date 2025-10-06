@@ -1,105 +1,122 @@
-# ecorunner.py
-import pygame
-import random
+import pygame, random, sys
 
+# Inicialización
 pygame.init()
 ANCHO, ALTO = 800, 400
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("EcoRunner 🌱")
+pygame.display.set_caption("EcoRunner")
 reloj = pygame.time.Clock()
 fuente = pygame.font.Font(None, 40)
-fuente_grande = pygame.font.Font(None, 70)
+fuente_titulo = pygame.font.Font(None, 70)
 
-jugador = pygame.Rect(100, 300, 40, 40)
-y_suelo = 300
-salto = False
-vel_salto = 0
-obstaculos = []
-puntos = 0
-vel_obstaculos = 8
-nivel = 1
-spawn_rate = 40
-estado = "inicio"  # inicio, jugando, final
+# Función para mostrar texto centrado
+def mostrar_texto(texto, fuente, color, y):
+    render = fuente.render(texto, True, color)
+    rect = render.get_rect(center=(ANCHO // 2, y))
+    pantalla.blit(render, rect)
 
-def resetear():
-    global jugador, salto, vel_salto, obstaculos, puntos, vel_obstaculos, nivel, spawn_rate
-    jugador.x, jugador.y = 100, y_suelo
+# Pantalla de inicio
+def pantalla_inicio():
+    en_inicio = True
+    while en_inicio:
+        pantalla.fill((180, 255, 180))
+        mostrar_texto("EcoRunner", fuente_titulo, (0, 100, 0), 120)
+        mostrar_texto("Ayuda al planeta esquivando la contaminación", fuente, (0, 0, 0), 200)
+        mostrar_texto("Usa ↑ para saltar obstáculos.", fuente, (0, 0, 0), 260)
+        mostrar_texto("Presioná ESPACIO para comenzar", fuente, (0, 100, 0), 320)
+
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if e.type == pygame.KEYDOWN and e.key == pygame.K_SPACE:
+                en_inicio = False
+
+        pygame.display.flip()
+        reloj.tick(30)
+
+# Pantalla de Game Over
+def pantalla_game_over(puntaje):
+    en_game_over = True
+    while en_game_over:
+        pantalla.fill((255, 200, 200))
+        mostrar_texto(" GAME OVER ", fuente_titulo, (150, 0, 0), 120)
+        mostrar_texto(f"Puntaje final: {puntaje}", fuente, (0, 0, 0), 200)
+        mostrar_texto("Presioná R para reiniciar o ESC para salir", fuente, (50, 50, 50), 280)
+
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_r:
+                    juego()
+                if e.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+
+        pygame.display.flip()
+        reloj.tick(30)
+
+# Juego principal
+def juego():
+    jugador = pygame.Rect(100, 300, 40, 40)
     salto = False
-    vel_salto = 0
-    obstaculos.clear()
+    velocidad_salto = 0
+    obstaculos = []
     puntos = 0
-    vel_obstaculos = 8
-    nivel = 1
-    spawn_rate = 40
+    vidas = 3
 
-while True:
-    for e in pygame.event.get():
-        if e.type == pygame.QUIT:
-            pygame.quit()
-            raise SystemExit
-        if e.type == pygame.KEYDOWN:
-            if estado == "inicio" and e.key == pygame.K_SPACE:
-                estado = "jugando"
-            elif estado == "jugando" and e.key == pygame.K_SPACE and not salto:
+    corriendo = True
+    while corriendo:
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if e.type == pygame.KEYDOWN and not salto:
                 salto = True
-                vel_salto = -15
-            elif estado == "final" and e.key == pygame.K_r:
-                resetear()
-                estado = "inicio"
+                velocidad_salto = -15
 
-    if estado == "jugando":
+        # Movimiento del salto
         if salto:
-            jugador.y += vel_salto
-            vel_salto += 1
-            if jugador.y >= y_suelo:
-                jugador.y = y_suelo
+            jugador.y += velocidad_salto
+            velocidad_salto += 1
+            if jugador.y >= 300:
+                jugador.y = 300
                 salto = False
 
-        if random.randint(1, max(10, spawn_rate)) == 1:
-            obstaculos.append(pygame.Rect(ANCHO, 320, 20, 30))
+        # Generar obstáculos
+        if random.randint(1, 50) == 1:
+            obstaculos.append(pygame.Rect(800, 320, 20, 30))
 
-        for o in obstaculos[:]:
-            o.x -= vel_obstaculos
-            if o.x + o.width < 0:
+        # Mover obstáculos y detectar colisiones
+        for o in list(obstaculos):
+            o.x -= 8
+            if o.x < 0:
                 obstaculos.remove(o)
                 puntos += 1
 
-        for o in obstaculos:
             if jugador.colliderect(o):
-                estado = "final"
+                vidas -= 1
+                obstaculos.remove(o)
+                if vidas <= 0:
+                    pantalla_game_over(puntos)
 
-        nuevo_nivel = puntos // 50 + 1
-        if nuevo_nivel > nivel:
-            nivel = nuevo_nivel
-            vel_obstaculos += 2
-            spawn_rate = max(10, spawn_rate - 6)
-
-    pantalla.fill((200, 255, 200))
-    pygame.draw.rect(pantalla, (100, 180, 100), (0, y_suelo + 40, ANCHO, 100))
-
-    if estado == "inicio":
-        titulo = fuente_grande.render("EcoRunner 🌎", True, (10, 80, 10))
-        sub = fuente.render("Presiona ESPACIO para correr", True, (0, 0, 0))
-        pantalla.blit(titulo, (ANCHO // 2 - titulo.get_width() // 2, 120))
-        pantalla.blit(sub, (ANCHO // 2 - sub.get_width() // 2, 200))
-
-    elif estado == "jugando":
+        # Dibujar fondo y elementos
+        pantalla.fill((200, 255, 200))
         pygame.draw.rect(pantalla, (0, 200, 0), jugador)
         for o in obstaculos:
             pygame.draw.rect(pantalla, (80, 80, 80), o)
-        texto = fuente.render(f"Puntos: {puntos}  Nivel: {nivel}", True, (0, 0, 0))
-        pantalla.blit(texto, (10, 10))
-        co2 = round(puntos * 0.12, 2)
-        pantalla.blit(fuente.render(f"CO₂ evitado: {co2} kg", True, (0, 0, 0)), (10, 40))
 
-    elif estado == "final":
-        co2 = round(puntos * 0.12, 2)
-        msg = fuente_grande.render("¡Juego Terminado!", True, (120, 0, 0))
-        eco = fuente.render(f"Has reducido {co2} kg de CO₂ 🌱", True, (0, 0, 0))
-        reinicio = fuente.render("Presiona R para reiniciar", True, (0, 0, 0))
-        pantalla.blit(msg, (ANCHO // 2 - msg.get_width() // 2, 100))
-        pantalla.blit(eco, (ANCHO // 2 - eco.get_width() // 2, 180))
-        pantalla.blit(reinicio, (ANCHO // 2 - reinicio.get_width() // 2, 240))
+        # Mostrar puntos y vidas
+        texto_puntos = fuente.render(f"Puntos: {puntos}", True, (0, 0, 0))
+        pantalla.blit(texto_puntos, (10, 10))
+        texto_vidas = fuente.render(f"Vidas: {vidas}", True, (0, 0, 0))
+        pantalla.blit(texto_vidas, (10, 50))
 
-    pygame.display.flip()
-    reloj.tick(60)
+        pygame.display.flip()
+        reloj.tick(30)
+
+# Iniciar el juego
+pantalla_inicio()
+juego()
