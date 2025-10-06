@@ -22,7 +22,7 @@ def pantalla_inicio():
         pantalla.fill((180, 255, 180))
         mostrar_texto("EcoRunner", fuente_titulo, (0, 100, 0), 120)
         mostrar_texto("Ayuda al planeta esquivando la contaminación", fuente, (0, 0, 0), 200)
-        mostrar_texto("Usa ↑ para saltar obstáculos.", fuente, (0, 0, 0), 260)
+        mostrar_texto("Usa ESPACIO o FLECHA ARRIBA para saltar obstáculos.", fuente, (0, 0, 0), 260)
         mostrar_texto("Presioná ESPACIO para comenzar", fuente, (0, 100, 0), 320)
 
         for e in pygame.event.get():
@@ -36,13 +36,14 @@ def pantalla_inicio():
         reloj.tick(30)
 
 # Pantalla de Game Over
-def pantalla_game_over(puntaje):
+def pantalla_game_over(puntaje, nivel):
     en_game_over = True
     while en_game_over:
         pantalla.fill((255, 200, 200))
-        mostrar_texto(" GAME OVER ", fuente_titulo, (150, 0, 0), 120)
+        mostrar_texto("GAME OVER", fuente_titulo, (150, 0, 0), 120)
         mostrar_texto(f"Puntaje final: {puntaje}", fuente, (0, 0, 0), 200)
-        mostrar_texto("Presioná R para reiniciar o ESC para salir", fuente, (50, 50, 50), 280)
+        mostrar_texto(f"Nivel alcanzado: {nivel}", fuente, (0, 0, 0), 240)
+        mostrar_texto("Presioná R para reiniciar o ESC para salir", fuente, (50, 50, 50), 300)
 
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
@@ -67,6 +68,11 @@ def juego():
     puntos = 0
     vidas = 3
 
+    # Niveles
+    nivel = 1
+    velocidad_obstaculo = 8
+    puntos_para_subir_nivel = 10
+
     corriendo = True
     while corriendo:
         for e in pygame.event.get():
@@ -85,13 +91,13 @@ def juego():
                 jugador.y = 300
                 salto = False
 
-        # Generar obstáculos
-        if random.randint(1, 50) == 1:
-            obstaculos.append(pygame.Rect(800, 320, 20, 30))
+        # Generar obstáculos aleatorios
+        if random.randint(1, 40) == 1:
+            obstaculos.append(pygame.Rect(ANCHO, 320, 20, 30))
 
         # Mover obstáculos y detectar colisiones
         for o in list(obstaculos):
-            o.x -= 8
+            o.x -= velocidad_obstaculo
             if o.x < 0:
                 obstaculos.remove(o)
                 puntos += 1
@@ -100,7 +106,12 @@ def juego():
                 vidas -= 1
                 obstaculos.remove(o)
                 if vidas <= 0:
-                    pantalla_game_over(puntos)
+                    pantalla_game_over(puntos, nivel)
+
+        # Subir de nivel
+        if puntos > 0 and puntos % puntos_para_subir_nivel == 0:
+            nivel = puntos // puntos_para_subir_nivel + 1
+            velocidad_obstaculo = 8 + nivel * 2  # más rápido cada nivel
 
         # Dibujar fondo y elementos
         pantalla.fill((200, 255, 200))
@@ -108,11 +119,10 @@ def juego():
         for o in obstaculos:
             pygame.draw.rect(pantalla, (80, 80, 80), o)
 
-        # Mostrar puntos y vidas
-        texto_puntos = fuente.render(f"Puntos: {puntos}", True, (0, 0, 0))
-        pantalla.blit(texto_puntos, (10, 10))
-        texto_vidas = fuente.render(f"Vidas: {vidas}", True, (0, 0, 0))
-        pantalla.blit(texto_vidas, (10, 50))
+        # Mostrar puntos, vidas y nivel
+        pantalla.blit(fuente.render(f"Puntos: {puntos}", True, (0,0,0)), (10,10))
+        pantalla.blit(fuente.render(f"Vidas: {vidas}", True, (0,0,0)), (10,50))
+        pantalla.blit(fuente.render(f"Nivel: {nivel}", True, (0,0,0)), (10,90))
 
         pygame.display.flip()
         reloj.tick(30)
