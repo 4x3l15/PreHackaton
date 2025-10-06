@@ -1,5 +1,11 @@
 import pygame, random, sys
 
+pygame.init()
+pygame.mixer.init()  # inicializar mixer
+pygame.mixer.music.load("musica-juego.mp3")
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1)  # música en bucle
+
 # Inicialización
 pygame.init()
 ANCHO, ALTO = 600, 400
